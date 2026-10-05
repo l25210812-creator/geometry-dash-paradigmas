@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paradigm Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una "pantalla de arcade" arriba (el juego), y debajo la línea del tiempo legible,
+   los paradigmas y el código. Tema oscuro único a propósito: es una pantalla de juego. */
+:root {
+  --noche: #10142a;      /* fondo */
+  --panel: #191f3d;      /* superficies */
+  --linea: #2b3463;      /* bordes y rejilla */
+  --tinta: #eceffb;      /* texto */
+  --tenue: #9aa3cc;      /* texto secundario */
+  --acento: #5aa9ff;     /* azul OO: el color del jugador */
+
+  --p-imp: #f4b740;
+  --p-proc: #ff8a4c;
+  --p-oo: #5aa9ff;
+  --p-ev: #ff6fa8;
+  --p-fun: #b48cff;
+  --p-log: #57d6a4;
+  --p-dec: #4fd4e0;
+  --p-multi: #d9dcf0;
+
+  --f-display: "Bungee", "Arial Black", Impact, sans-serif;
+  --f-texto: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-codigo: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  color-scheme: dark;
+}
+html { background: var(--noche); }
+body {
+  background: var(--noche);
+  color: var(--tinta);
+  font-family: var(--f-texto);
+  font-size: 16px;
+  line-height: 1.55;
+}
+.envoltura {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 28px 64px;
+  display: grid;
+  gap: 56px;
+}
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(2.3rem, 8vw, 4.4rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+h1 .cubo {
+  display: inline-block;
+  width: 0.62em; height: 0.62em;
+  background: var(--acento);
+  border: 0.08em solid var(--tinta);
+  transform: rotate(12deg) translateY(-0.04em);
+  margin-left: 0.12em;
+}
+h2 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(1.4rem, 4.2vw, 2rem);
+  line-height: 1.1;
+}
+.ceja {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  font-weight: 700;
+}
+p { margin: 0; }
+.lede { max-width: 62ch; color: var(--tenue); font-size: 1.05rem; }
+.lede strong { color: var(--tinta); }
+
+/* ---------- Encabezado ---------- */
+header { display: grid; gap: 14px; }
+
+/* ---------- Escenario del juego ---------- */
+.juego { display: grid; gap: 16px; }
+.escenario {
+  position: relative;
+  border: 2px solid var(--linea);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--noche);
+  height: clamp(220px, 40vw, 360px);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+}
+.escenario:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
+canvas { display: block; width: 100%; height: 100%; }
+
+.bajo-escenario {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 16px;
+}
+@media (max-width: 720px) { .bajo-escenario { grid-template-columns: minmax(0, 1fr); } }
+
+.tarjeta-hito {
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-left: 6px solid var(--color-hito, var(--acento));
+  border-radius: 6px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 172px;
+  align-content: start;
+}
+.tarjeta-hito .anio {
+  font-family: var(--f-display);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--color-hito, var(--acento));
+  font-variant-numeric: tabular-nums;
+}
+.tarjeta-hito h3 { font-size: 1.2rem; }
+.tarjeta-hito p { color: var(--tenue); max-width: 62ch; }
+.tarjeta-hito .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.controles {
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.marcador { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.marcador div { display: grid; gap: 2px; }
+.marcador b {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.barra { height: 8px; background: var(--linea); border-radius: 4px; overflow: hidden; }
+.barra i { display: block; height: 100%; width: 0; background: var(--acento); transition: width .3s; }
+.teclas { color: var(--tenue); font-size: 0.9rem; }
+kbd {
+  font-family: var(--f-codigo);
+  font-size: 0.8rem;
+  border: 1px solid var(--linea);
+  border-bottom-width: 3px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--tinta);
+  background: var(--noche);
+}
+.botones { display: flex; flex-wrap: wrap; gap: 8px; }
+button {
+  font: inherit;
+  color: var(--tinta);
+  background: var(--noche);
+  border: 1px solid var(--linea);
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--tenue); }
+button:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+button.principal { background: var(--acento); color: var(--noche); border-color: var(--acento); font-weight: 700; }
+
+/* ---------- Chips de paradigma ---------- */
+.chip {
+  --c: var(--tenue);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 9px 3px 7px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  white-space: nowrap;
+}
+.chip::before { content: ""; width: 8px; height: 8px; background: var(--c); }
+.u1 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--tinta);
+  color: var(--noche);
+}
+
+/* ---------- Sección genérica ---------- */
+section { display: grid; gap: 20px; }
+.titulo-seccion { display: grid; gap: 8px; }
+
+/* ---------- Filtros ---------- */
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+.filtros button { font-size: 0.85rem; padding: 6px 10px; display: inline-flex; gap: 6px; align-items: center; }
+.filtros button[aria-pressed="true"] { background: var(--tinta); color: var(--noche); border-color: var(--tinta); }
+.filtros .punto { width: 9px; height: 9px; background: var(--c); }
+
+/* ---------- Línea del tiempo ---------- */
+.linea { list-style: none; margin: 0; padding: 0; position: relative; display: grid; gap: 0; }
+.linea::before {
+  content: ""; position: absolute; left: 86px; top: 6px; bottom: 6px;
+  width: 2px; background: var(--linea);
+}
+.linea li {
+  --c: var(--tenue);
+  display: grid;
+  grid-template-columns: 72px 30px minmax(0, 1fr);
+  column-gap: 0;
+  padding-block: 12px;
+  position: relative;
+}
+.linea .anio {
+  font-family: var(--f-display);
+  font-size: 1.15rem;
+  color: var(--c);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+.linea .marca {
+  width: 14px; height: 14px; margin: 6px auto 0;
+  background: var(--noche);
+  border: 3px solid var(--c);
+  transform: rotate(45deg);
+  position: relative; z-index: 1;
+}
+.linea li.visto .marca { background: var(--c); }
+.linea .cuerpo { display: grid; gap: 6px; min-width: 0; padding-left: 8px; }
+.linea .cuerpo .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.linea h3 { font-size: 1.05rem; }
+.linea p { color: var(--tenue); max-width: 64ch; }
+.linea .check { font-size: 0.75rem; color: var(--p-log); font-weight: 700; letter-spacing: 0.06em; }
+.linea li.meta .cuerpo {
+  background: var(--panel); border: 1px solid var(--linea); border-radius: 6px; padding: 12px 14px; margin-left: 8px;
+}
+@media (max-width: 520px) {
+  .linea::before { left: 62px; }
+  .linea li { grid-template-columns: 50px 26px minmax(0, 1fr); }
+  .linea .anio { font-size: 0.95rem; }
+}
+.vacio { color: var(--tenue); }
+
+/* ---------- Paradigmas ---------- */
+.rejilla-paradigmas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+.paradigma {
+  --c: var(--tenue);
+  border-top: 4px solid var(--c);
+  background: var(--panel);
+  border-radius: 0 0 6px 6px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.paradigma .fila { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.paradigma h3 { font-size: 1rem; color: var(--c); }
+.paradigma p { color: var(--tenue); font-size: 0.93rem; }
+.paradigma .ej { font-family: var(--f-codigo); font-size: 0.78rem; color: var(--tinta); }
+
+/* ---------- Código ---------- */
+.en-codigo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+.fragmento {
+  --c: var(--acento);
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  overflow: hidden;
+}
+.fragmento header {
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+  border-bottom: 1px solid var(--linea);
+}
+.fragmento header p { color: var(--tenue); font-size: 0.92rem; }
+pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--f-codigo);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  background: var(--noche);
+  color: var(--tinta);
+}
+pre .k { color: var(--p-ev); }
+pre .t { color: var(--p-oo); }
+pre .c { color: var(--tenue); font-style: italic; }
+pre .n { color: var(--p-imp); }
+
+.comparar { display: grid; gap: 12px; }
+.pestanas { display: flex; flex-wrap: wrap; gap: 8px; }
+.pestanas button[aria-selected="true"] { background: var(--tinta); color: var(--noche); border-color: var(--tinta); }
+.lado-a-lado { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; }
+@media (max-width: 760px) { .lado-a-lado { grid-template-columns: minmax(0,1fr); } }
+.diferencias {
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.93rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+th { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tenue); }
+td:first-child { font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+
+footer {
+  border-top: 1px solid var(--linea);
+  padding-top: 20px;
+  color: var(--tenue);
+  font-size: 0.9rem;
+  display: grid;
+  gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barra i { transition: none; }
+}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+
+<div class="envoltura">
+
+  <header>
+    <span class="ceja">Paradigmas de Programación · Unidad 1 · TecNM Campus Tijuana</span>
+    <h1>Paradigm Dash<span class="cubo" aria-hidden="true"></span></h1>
+    <p class="lede">Una línea del tiempo que se juega. El cubo corre por casi 200 años de historia y cada <strong>portal</strong> es un momento clave de los paradigmas de programación. Salta los picos, cruza los portales y desbloquea los hitos.</p>
+    <p class="autores" id="autores" hidden></p>
+  </header>
+
+  <!-- ==================== JUEGO ==================== -->
+  <section class="juego" id="jugar" aria-label="Juego de la línea del tiempo">
+    <div class="escenario" id="escenario" tabindex="0" aria-label="Juego. Presiona espacio o toca para saltar.">
+      <canvas id="lienzo"></canvas>
+    </div>
+
+    <div class="bajo-escenario">
+      <article class="tarjeta-hito" id="tarjeta" aria-live="polite">
+        <span class="ceja">Cómo se juega</span>
+        <h3>Cruza un portal para abrir su hito</h3>
+        <p>El cubo avanza solo. Mantén <kbd>Espacio</kbd> o toca la pantalla para saltar. Si chocas, reapareces en el último portal y conservas lo que desbloqueaste.</p>
+      </article>
+
+      <aside class="controles">
+        <div class="marcador">
+          <div><span class="ceja">Hitos</span><b id="cuentaHitos">0 / 0</b></div>
+          <div><span class="ceja">Intentos</span><b id="cuentaIntentos">1</b></div>
+        </div>
+        <div class="barra" aria-hidden="true"><i id="progreso"></i></div>
+        <p class="teclas"><kbd>Espacio</kbd> o toque: saltar · <kbd>P</kbd>: pausa</p>
+        <div class="botones">
+          <button class="principal" id="btnJugar" type="button">Jugar</button>
+          <button id="btnReiniciar" type="button">Desde el inicio</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ==================== LÍNEA DEL TIEMPO ==================== -->
+  <section id="linea" aria-labelledby="tLinea">
+    <div class="titulo-seccion">
+      <span class="ceja">Toda la historia, sin jugar</span>
+      <h2 id="tLinea">Línea del tiempo</h2>
+      <p class="lede">Los mismos hitos del juego en orden. Los que ya cruzaste se marcan con el rombo relleno. Las etiquetas <span class="u1">U1</span> señalan los paradigmas que vimos en la Unidad 1.</p>
+    </div>
+    <div class="filtros" id="filtros" role="group" aria-label="Filtrar por paradigma"></div>
+    <ol class="linea" id="listaLinea"></ol>
+  </section>
+
+  <!-- ==================== PARADIGMAS ==================== -->
+  <section id="paradigmas" aria-labelledby="tParadigmas">
+    <div class="titulo-seccion">
+      <span class="ceja">Leyenda de colores</span>
+      <h2 id="tParadigmas">Los paradigmas</h2>
+      <p class="lede">Un paradigma es una forma de pensar y organizar un programa. Cada color del juego corresponde a uno.</p>
+    </div>
+    <div class="rejilla-paradigmas" id="rejillaParadigmas"></div>
+  </section>
+
+  <!-- ==================== CÓDIGO ==================== -->
+  <section id="codigo" aria-labelledby="tCodigo">
+    <div class="titulo-seccion">
+      <span class="ceja">De la teoría a nuestro Geometry Dash</span>
+      <h2 id="tCodigo">La Unidad 1 en nuestro código</h2>
+      <p class="lede">Nuestro juego en C# con raylib parte del programa que armamos en clase. Estos fragmentos muestran dónde aparece cada paradigma.</p>
+    </div>
+
+    <div class="en-codigo">
+      <article class="fragmento" style="--c: var(--p-oo)">
+        <header>
+          <span class="chip" style="--c: var(--p-oo)">Orientado a objetos</span>
+          <h3>Abstracción</h3>
+          <p>La clase abstracta <code>Objeto</code> define qué debe saber hacer cualquier cosa del juego, sin decir cómo.</p>
+        </header>
+<pre><span class="k">abstract class</span> <span class="t">Objeto</span> : <span class="t">IComparable</span>&lt;<span class="t">Objeto</span>&gt;
+{
+    <span class="k">public abstract void</span> Draw();
+    <span class="k">public abstract void</span> Update(<span class="k">int</span> w, <span class="k">int</span> h);
+    <span class="k">public abstract bool</span> CollisionWith(<span class="t">Objeto</span> o);
+}</pre>
+      </article>
+
+      <article class="fragmento">
+        <header>
+          <span class="chip" style="--c: var(--p-oo)">Orientado a objetos</span>
+          <h3>Herencia y sobrescritura</h3>
+          <p><code>Jugador</code> y <code>Obstaculo</code> heredan de <code>Caja</code> y cada uno redefine <code>Update()</code> a su manera.</p>
+        </header>
+<pre><span class="k">class</span> <span class="t">Jugador</span> : <span class="t">Caja</span>
+{
+    <span class="k">public override void</span> Update(<span class="k">int</span> w, <span class="k">int</span> h)
+    {
+        velocidad.Y += <span class="n">0.8f</span>;   <span class="c">// gravedad</span>
+        posición.Y  += velocidad.Y;
+    }
+}</pre>
+      </article>
+
+      <article class="fragmento">
+        <header>
+          <span class="chip" style="--c: var(--p-oo)">Orientado a objetos</span>
+          <h3>Polimorfismo</h3>
+          <p>Un solo ciclo actualiza y dibuja la lista sin preguntar qué tipo de objeto es cada elemento.</p>
+        </header>
+<pre><span class="t">List</span>&lt;<span class="t">Objeto</span>&gt; objetos = <span class="k">new</span>();
+
+<span class="k">foreach</span> (<span class="k">var</span> o <span class="k">in</span> objetos)
+    o.Update(screenWidth, screenHeight);
+
+<span class="k">foreach</span> (<span class="k">var</span> o <span class="k">in</span> objetos)
+    o.Draw();</pre>
+      </article>
+
+      <article class="fragmento">
+        <header>
+          <span class="chip" style="--c: var(--p-imp)">Imperativo</span>
+          <h3>El ciclo del juego</h3>
+          <p>Instrucciones en orden que cambian el estado 60 veces por segundo: actualizar, revisar choques, dibujar.</p>
+        </header>
+<pre><span class="k">while</span> (!Raylib.WindowShouldClose())
+{
+    <span class="k">if</span> (!muerto) { <span class="c">/* actualizar */</span> puntos++; }
+    Raylib.BeginDrawing();
+    <span class="c">/* dibujar */</span>
+    Raylib.EndDrawing();
+}</pre>
+      </article>
+
+      <article class="fragmento">
+        <header>
+          <span class="chip" style="--c: var(--p-ev)">Dirigido por eventos</span>
+          <h3>Responder al teclado</h3>
+          <p>El juego reacciona cuando el jugador presiona una tecla: saltar o reiniciar la partida.</p>
+        </header>
+<pre><span class="k">if</span> (enSuelo &amp;&amp; Raylib.IsKeyDown(<span class="t">KeyboardKey</span>.Space))
+{
+    velocidad.Y = <span class="n">-15f</span>;
+    enSuelo = <span class="k">false</span>;
+}</pre>
+      </article>
+
+      <article class="fragmento">
+        <header>
+          <span class="chip" style="--c: var(--p-proc)">Procedural</span>
+          <h3>Funciones que reciben datos</h3>
+          <p><code>CrearObstaculos()</code> es una función que trabaja sobre la lista que le pasan. Es el estilo de la versión procedural.</p>
+        </header>
+<pre><span class="k">static void</span> CrearObstaculos(<span class="t">List</span>&lt;<span class="t">Objeto</span>&gt; objetos, <span class="k">int</span> sueloY)
+{
+    objetos.Clear();
+    objetos.Add(<span class="k">new</span> <span class="t">Obstaculo</span>(...));
+}</pre>
+      </article>
+    </div>
+
+    <div class="comparar">
+      <div class="titulo-seccion">
+        <span class="ceja">Misma lógica, dos paradigmas</span>
+        <h3>Versión orientada a objetos contra versión procedural</h3>
+      </div>
+      <div class="pestanas" role="tablist" aria-label="Elegir qué comparar">
+        <button type="button" role="tab" id="tabMover" aria-selected="true" data-tab="mover">Mover obstáculos</button>
+        <button type="button" role="tab" id="tabChoque" aria-selected="false" data-tab="choque">Detectar choques</button>
+        <button type="button" role="tab" id="tabDatos" aria-selected="false" data-tab="datos">Guardar datos</button>
+      </div>
+
+      <div class="lado-a-lado" data-panel="mover">
+        <article class="fragmento">
+          <header><span class="chip" style="--c: var(--p-oo)">Orientado a objetos</span><p>Cada obstáculo sabe moverse solo.</p></header>
+<pre><span class="k">class</span> <span class="t">Obstaculo</span> : <span class="t">Caja</span>
+{
+  <span class="k">public override void</span> Update(...)
+  {
+    posición += velocidad;
+    <span class="k">if</span> (posición.X + ancho &lt; <span class="n">0</span>)
+      posición.X += <span class="n">1800</span>;
+  }
+}</pre>
+        </article>
+        <article class="fragmento">
+          <header><span class="chip" style="--c: var(--p-proc)">Procedural</span><p>Una función recorre el arreglo y mueve los datos.</p></header>
+<pre><span class="k">static void</span> ActualizarObstaculos()
+{
+  <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; NUM_OBSTACULOS; i++)
+  {
+    obstaculos[i].x += obstaculos[i].vx;
+    <span class="k">if</span> (obstaculos[i].x + obstaculos[i].ancho &lt; <span class="n">0</span>)
+      obstaculos[i].x += DISTANCIA_REAPARICION;
+  }
+}</pre>
+        </article>
+      </div>
+
+      <div class="lado-a-lado" data-panel="choque" hidden>
+        <article class="fragmento">
+          <header><span class="chip" style="--c: var(--p-oo)">Orientado a objetos</span><p>El objeto se pregunta a sí mismo si choca con otro.</p></header>
+<pre><span class="k">if</span> (jugador.CollisionWith(o))
+{
+    muerto = <span class="k">true</span>;
+    jugador.color = <span class="t">Color</span>.Red;
+}</pre>
+        </article>
+        <article class="fragmento">
+          <header><span class="chip" style="--c: var(--p-proc)">Procedural</span><p>Una función externa compara dos estructuras.</p></header>
+<pre><span class="k">static bool</span> HayColision(<span class="t">Bloque</span> a, <span class="t">Bloque</span> b)
+{
+  <span class="k">return</span> a.x &lt; b.x + b.ancho &amp;&amp;
+         a.x + a.ancho &gt; b.x &amp;&amp;
+         a.y &lt; b.y + b.alto  &amp;&amp;
+         a.y + a.alto &gt; b.y;
+}</pre>
+        </article>
+      </div>
+
+      <div class="lado-a-lado" data-panel="datos" hidden>
+        <article class="fragmento">
+          <header><span class="chip" style="--c: var(--p-oo)">Orientado a objetos</span><p>Datos y comportamiento viven juntos en la clase.</p></header>
+<pre><span class="k">class</span> <span class="t">Caja</span> : <span class="t">Objeto</span>
+{
+  <span class="k">public int</span> ancho, largo;
+  <span class="k">public override void</span> Draw() { ... }
+  <span class="k">public override int</span> GetArea() { ... }
+}</pre>
+        </article>
+        <article class="fragmento">
+          <header><span class="chip" style="--c: var(--p-proc)">Procedural</span><p>Un <code>struct</code> solo guarda datos, como en C.</p></header>
+<pre><span class="k">struct</span> <span class="t">Bloque</span>
+{
+  <span class="k">public float</span> x, y, vx, vy;
+  <span class="k">public int</span> ancho, alto;
+  <span class="k">public</span> <span class="t">Color</span> color;
+}</pre>
+        </article>
+      </div>
+
+      <div class="diferencias">
+        <table>
+          <thead><tr><th>Aspecto</th><th>Orientado a objetos</th><th>Procedural</th></tr></thead>
+          <tbody>
+            <tr><td>Organización</td><td>Clases que juntan datos y métodos</td><td>Structs con datos y funciones separadas</td></tr>
+            <tr><td>Nuevo tipo de objeto</td><td>Se crea una subclase y se sobrescribe <code>Update()</code></td><td>Se agregan datos y se modifica cada función que los usa</td></tr>
+            <tr><td>Estado del juego</td><td>Repartido dentro de cada objeto</td><td>Variables globales visibles para todas las funciones</td></tr>
+            <tr><td>Ciclo principal</td><td>Recorre una lista polimórfica</td><td>Llama funciones en un orden fijo</td></tr>
+            <tr><td>Ventaja</td><td>Fácil de extender y reutilizar</td><td>Más directo y fácil de seguir paso a paso</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Este juego está escrito en JavaScript con la misma jerarquía de clases que nuestro Geometry Dash: <code>Objeto</code> → <code>Caja</code> → <code>Jugador</code>, más <code>Pico</code> y <code>Portal</code>. El paradigma orientado a objetos también construyó esta página.</p>
+    <p>Paradigmas de Programación · Unidad 1 · 2026</p>
+  </footer>
+</div>
+
+<script>
+// ============ Edita aquí los nombres del equipo ============
+const AUTORES = "José Franyutti Ricardez y Eduardo Orduño Moreno";
+
+// ============ Datos: paradigmas ============
+const TIPOS = {
+  imp:   { n: "Imperativo", c: "--p-imp", u1: true,
+           def: "El programa es una secuencia de órdenes que cambian el estado de la memoria paso a paso.",
+           ej: "x = x + 1;" },
+  proc:  { n: "Procedural y estructurado", c: "--p-proc", u1: true,
+           def: "Organiza las órdenes en funciones y usa solo secuencia, decisión y ciclos, sin saltos con goto.",
+           ej: "ActualizarJugador();" },
+  oo:    { n: "Orientado a objetos", c: "--p-oo", u1: true,
+           def: "Modela el problema con objetos que juntan datos y comportamiento: abstracción, encapsulamiento, herencia y polimorfismo.",
+           ej: "class Jugador : Caja" },
+  ev:    { n: "Dirigido por eventos", c: "--p-ev", u1: true,
+           def: "El flujo lo deciden los eventos: una tecla, un clic o un temporizador disparan el código que responde.",
+           ej: "IsKeyDown(Space)" },
+  fun:   { n: "Funcional", c: "--p-fun", u1: false,
+           def: "Construye programas componiendo funciones puras, sin modificar datos compartidos.",
+           ej: "lista.map(x => x * 2)" },
+  log:   { n: "Lógico", c: "--p-log", u1: false,
+           def: "Se escriben hechos y reglas; el sistema deduce las respuestas por sí mismo.",
+           ej: "padre(X, Y) :- ..." },
+  dec:   { n: "Declarativo", c: "--p-dec", u1: false,
+           def: "Se describe qué resultado se quiere, no los pasos para obtenerlo.",
+           ej: "SELECT * FROM jugadores" },
+  multi: { n: "Multiparadigma", c: "--p-multi", u1: false,
+           def: "Lenguajes que combinan varios paradigmas y dejan elegir el estilo según el problema.",
+           ej: "C++, Python, C#" },
+};
+
+// ============ Datos: hitos de la línea del tiempo ============
+const HITOS = [
+  { a: 1843, t: "Notas de Ada Lovelace", p: "imp",
+    d: "Ada Lovelace publica un algoritmo para la máquina analítica de Charles Babbage. Son pasos ordenados que calculan números de Bernoulli: la idea de un programa como lista de instrucciones." },
+  { a: 1949, t: "Lenguaje ensamblador", p: "imp",
+    d: "En las primeras computadoras se cambian los números binarios por nombres cortos de instrucciones. Cada línea mueve o modifica un dato en la memoria." },
+  { a: 1957, t: "FORTRAN", p: "imp",
+    d: "John Backus y su equipo en IBM crean el primer lenguaje de alto nivel de uso amplio. Permite escribir fórmulas que el compilador traduce a código máquina." },
+  { a: 1958, t: "LISP", p: "fun",
+    d: "John McCarthy diseña un lenguaje basado en funciones, listas y recursión. Se volvió el lenguaje clásico de la inteligencia artificial simbólica." },
+  { a: 1959, t: "COBOL", p: "proc",
+    d: "Un comité con influencia de Grace Hopper crea un lenguaje para negocios, organizado en divisiones, secciones y párrafos que se ejecutan como procedimientos." },
+  { a: 1960, t: "ALGOL 60", p: "proc",
+    d: "Introduce los bloques begin … end, el alcance de variables y la recursión. De él descienden Pascal, C y casi todos los lenguajes con llaves." },
+  { a: 1967, t: "Simula 67", p: "oo",
+    d: "Ole-Johan Dahl y Kristen Nygaard crean las clases, los objetos y la herencia para programar simulaciones. Son las mismas ideas de nuestras clases Caja y Pelota." },
+  { a: 1968, t: "Programación estructurada", p: "proc",
+    d: "Edsger Dijkstra critica el uso de goto. Propone construir programas solo con secuencia, decisión y ciclos, la base del paradigma estructurado." },
+  { a: 1970, t: "Pascal", p: "proc",
+    d: "Niklaus Wirth crea Pascal para enseñar programación estructurada con procedimientos, funciones y tipos de datos claros." },
+  { a: 1972, t: "C", p: "proc",
+    d: "Dennis Ritchie desarrolla C en Bell Labs para escribir Unix. Usa funciones, structs y punteros. Nuestra versión procedural imita este estilo." },
+  { a: 1972, t: "Prolog", p: "log",
+    d: "Alain Colmerauer y Philippe Roussel crean un lenguaje de hechos y reglas. El programa no dice cómo resolver, el motor deduce. Muy usado en IA." },
+  { a: 1972, t: "Smalltalk", p: "oo",
+    d: "Alan Kay y su equipo en Xerox PARC llevan los objetos al extremo: todo es un objeto y se comunican con mensajes. También impulsó las interfaces con ventanas." },
+  { a: 1974, t: "SQL", p: "dec",
+    d: "Donald Chamberlin y Raymond Boyce en IBM crean SEQUEL, hoy SQL. Se pide qué datos se quieren y la base de datos decide cómo obtenerlos." },
+  { a: 1985, t: "C++", p: "multi",
+    d: "Bjarne Stroustrup publica C++, que agrega clases a C. Permite escribir código procedural y orientado a objetos en el mismo programa." },
+  { a: 1990, t: "Haskell", p: "fun",
+    d: "Un comité académico define Haskell, un lenguaje funcional puro: sin variables que cambian y con evaluación perezosa." },
+  { a: 1991, t: "Python", p: "multi",
+    d: "Guido van Rossum publica Python. Mezcla estilo procedural, objetos y funciones. Hoy es el lenguaje más usado para inteligencia artificial." },
+  { a: 1991, t: "Visual Basic", p: "ev",
+    d: "Microsoft populariza la programación por eventos: se dibuja una ventana y se escribe qué pasa al hacer clic en cada botón." },
+  { a: 1995, t: "Java", p: "oo",
+    d: "Sun Microsystems lanza Java, orientado a objetos con clases e interfaces. Se compila a bytecode y corre en cualquier sistema con su máquina virtual." },
+  { a: 1995, t: "JavaScript", p: "ev",
+    d: "Brendan Eich lo crea en Netscape para que las páginas respondan a eventos como clics y teclas. Este mismo juego está hecho con JavaScript." },
+  { a: 2002, t: "C# y .NET", p: "oo",
+    d: "Microsoft lanza C#, diseñado por Anders Hejlsberg. Es el lenguaje de nuestro juego: clases abstractas, override e interfaces como IComparable." },
+  { a: 2007, t: "C# 3.0 y LINQ", p: "fun",
+    d: "C# agrega expresiones lambda y LINQ. Un lenguaje orientado a objetos adopta ideas funcionales y declarativas para consultar colecciones." },
+  { a: 2013, t: "raylib", p: "imp",
+    d: "Ramon Santamaria crea raylib, una biblioteca en C para hacer videojuegos con un ciclo simple. Usamos su versión Raylib-cs para C#." },
+  { a: 2013, t: "React", p: "dec",
+    d: "Facebook publica React. La interfaz se describe según el estado y la biblioteca actualiza la pantalla cuando ese estado cambia." },
+  { a: 2015, t: "Rust 1.0", p: "multi",
+    d: "Rust mezcla ideas funcionales, imperativas y de objetos con reglas que evitan errores de memoria sin recolector de basura." },
+  { a: 2026, t: "Nuestro Geometry Dash", p: "oo", meta: true,
+    d: "Extendemos el programa de clase en C# con raylib: Objeto → Caja → Jugador y Obstaculo, gravedad, salto, puntaje y pantalla de derrota. Luego lo comparamos con una versión procedural." },
+];
+
+// ============ Utilidades ============
+const css = getComputedStyle(document.documentElement);
+const color = (v) => css.getPropertyValue(v).trim() || "#ffffff";
+const $ = (id) => document.getElementById(id);
+function guardar(clave, valor) { try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) {} }
+function leer(clave, def) { try { const v = localStorage.getItem(clave); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+
+if (AUTORES.trim()) { $("autores").textContent = "Por " + AUTORES; $("autores").hidden = false; }
+
+let desbloqueados = new Set(leer("pd-desbloqueados", []));
+
+// ============ Paradigmas (leyenda) ============
+function chipHTML(p) {
+  const t = TIPOS[p];
+  return `<span class="chip" style="--c: var(${t.c})">${t.n}</span>`;
+}
+$("rejillaParadigmas").innerHTML = Object.entries(TIPOS).map(([k, t]) => `
+  <article class="paradigma" style="--c: var(${t.c})">
+    <div class="fila"><h3>${t.n}</h3>${t.u1 ? '<span class="u1">U1</span>' : ""}</div>
+    <p>${t.def}</p>
+    <span class="ej">${t.ej}</span>
+  </article>`).join("");
+
+// ============ Línea del tiempo (lista) ============
+let filtro = "todos";
+function pintarFiltros() {
+  const opciones = [["todos", "Todos", "--tenue"], ["u1", "Unidad 1", "--tinta"],
+    ...Object.entries(TIPOS).map(([k, t]) => [k, t.n, t.c])];
+  $("filtros").innerHTML = opciones.map(([k, n, c]) =>
+    `<button type="button" data-f="${k}" aria-pressed="${filtro === k}" style="--c: var(${c})">
+       ${k !== "todos" && k !== "u1" ? '<span class="punto"></span>' : ""}${n}</button>`).join("");
+}
+function pintarLinea() {
+  const lista = HITOS.map((h, i) => ({ ...h, i })).filter(h =>
+    filtro === "todos" ? true : filtro === "u1" ? TIPOS[h.p].u1 : h.p === filtro);
+  $("listaLinea").innerHTML = lista.length ? lista.map(h => {
+    const t = TIPOS[h.p];
+    const visto = desbloqueados.has(h.i);
+    return `<li class="${visto ? "visto" : ""} ${h.meta ? "meta" : ""}" style="--c: var(${t.c})">
+      <span class="anio">${h.a}</span>
+      <span class="marca" aria-hidden="true"></span>
+      <div class="cuerpo">
+        <div class="fila"><h3>${h.t}</h3>${chipHTML(h.p)}${t.u1 ? '<span class="u1">U1</span>' : ""}
+          ${visto ? '<span class="check">✓ desbloqueado</span>' : ""}</div>
+        <p>${h.d}</p>
+      </div></li>`;
+  }).join("") : `<li><span></span><span></span><p class="vacio">No hay hitos de este paradigma.</p></li>`;
+}
+$("filtros").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-f]");
+  if (!b) return;
+  filtro = b.dataset.f;
+  pintarFiltros(); pintarLinea();
+});
+pintarFiltros(); pintarLinea();
+
+// ============ Pestañas de comparación ============
+document.querySelector(".pestanas").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-tab]");
+  if (!b) return;
+  document.querySelectorAll(".pestanas button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== b.dataset.tab);
+});
+
+// =====================================================================
+//  JUEGO — misma idea que nuestro C#: Objeto → Caja → Jugador / Pico,
+//  y Objeto → Portal. El ciclo principal usa polimorfismo.
+// =====================================================================
+const ALTO = 300;          // alto lógico del mundo
+const SUELO = 244;         // y del suelo
+const VEL = 5.2;           // avance por cuadro
+const GRAVEDAD = 0.8;
+const SALTO = -13;
+const SEP = 680;           // distancia entre portales
+const INICIO = 620;        // x del primer portal
+
+const COL = {
+  noche: color("--noche"), panel: color("--panel"), linea: color("--linea"),
+  tinta: color("--tinta"), tenue: color("--tenue"), acento: color("--acento"),
+};
+const colorDe = (p) => color(TIPOS[p].c);
+
+class Objeto {
+  constructor(x, y, c) { this.x = x; this.y = y; this.color = c; }
+  update(dt) {}
+  draw(ctx, cam) {}
+}
+
+class Caja extends Objeto {
+  constructor(x, y, w, h, c) { super(x, y, c); this.w = w; this.h = h; }
+  caja() { return { x: this.x, y: this.y, w: this.w, h: this.h }; }
+  choca(o) {
+    const a = this.caja(), b = o.caja();
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+  draw(ctx, cam) { ctx.fillStyle = this.color; ctx.fillRect(this.x - cam, this.y, this.w, this.h); }
+}
+
+class Jugador extends Caja {
+  constructor(x) { super(x, SUELO - 30, 30, 30, COL.acento); this.vy = 0; this.enSuelo = true; this.giro = 0; this.estela = []; }
+  colocar(x) { this.x = x; this.y = SUELO - this.h; this.vy = 0; this.enSuelo = true; this.giro = 0; this.estela = []; }
+  update(dt) {
+    this.x += VEL * dt;
+    if (this.enSuelo && entrada.salto) { this.vy = SALTO; this.enSuelo = false; }
+    this.vy += GRAVEDAD * dt;
+    this.y += this.vy * dt;
+    if (this.y + this.h >= SUELO) {
+      this.y = SUELO - this.h; this.vy = 0; this.enSuelo = true;
+      this.giro = Math.round(this.giro / (Math.PI / 2)) * (Math.PI / 2);
+    } else {
+      this.giro += 0.16 * dt;
+    }
+    this.estela.push({ x: this.x, y: this.y });
+    if (this.estela.length > 8) this.estela.shift();
+  }
+  draw(ctx, cam) {
+    this.estela.forEach((p, i) => {
+      ctx.globalAlpha = (i + 1) / this.estela.length * 0.25;
+      ctx.fillStyle = this.color;
+      const s = 10 + i;
+      ctx.fillRect(p.x - cam + 15 - s / 2 - (this.estela.length - i) * 2, p.y + 15 - s / 2, s, s);
+    });
+    ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.translate(this.x - cam + 15, this.y + 15);
+    ctx.rotate(this.giro);
+    ctx.fillStyle = this.color;
+    ctx.fillRect(-15, -15, 30, 30);
+    ctx.lineWidth = 3; ctx.strokeStyle = COL.tinta;
+    ctx.strokeRect(-13.5, -13.5, 27, 27);
+    ctx.fillStyle = COL.noche;
+    ctx.fillRect(-7, -7, 14, 14);
+    ctx.fillStyle = COL.tinta;
+    ctx.fillRect(-3, -3, 6, 6);
+    ctx.restore();
+  }
+}
+
+class Pico extends Caja {
+  constructor(x, n) { super(x, SUELO - 28, 28 * n, 28, COL.tinta); this.n = n; }
+  caja() { return { x: this.x + 7, y: this.y + 12, w: this.w - 14, h: 16 }; } // hitbox amable
+  draw(ctx, cam) {
+    for (let i = 0; i < this.n; i++) {
+      const x = this.x - cam + i * 28;
+      ctx.beginPath();
+      ctx.moveTo(x, SUELO); ctx.lineTo(x + 14, SUELO - 28); ctx.lineTo(x + 28, SUELO); ctx.closePath();
+      ctx.fillStyle = COL.panel; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = COL.tinta; ctx.stroke();
+    }
+  }
+}
+
+class Portal extends Objeto {
+  constructor(x, i) { super(x, SUELO - 120, colorDe(HITOS[i].p)); this.i = i; this.hito = HITOS[i]; this.cruzado = false; }
+  draw(ctx, cam) {
+    const x = this.x - cam;
+    if (x < -80 || x > anchoLogico + 80) return;
+    ctx.save();
+    ctx.globalAlpha = this.cruzado ? 0.35 : 0.14;
+    ctx.fillStyle = this.color;
+    ctx.fillRect(x - 12, this.y, 24, 120);
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 3; ctx.strokeStyle = this.color;
+    ctx.strokeRect(x - 12, this.y, 24, 120);
+    ctx.fillStyle = this.color;
+    ctx.font = `20px ${fuenteDisplay}`;
+    ctx.textAlign = "center";
+    ctx.fillText(String(this.hito.a), x, this.y - 12);
+    ctx.font = `12px ${fuenteTexto}`;
+    ctx.fillStyle = COL.tenue;
+    ctx.fillText(this.hito.t, x, SUELO + 40);
+    ctx.restore();
+    // marca de la regla del suelo
+    ctx.fillStyle = this.color;
+    ctx.fillRect(x - 1, SUELO, 2, 14);
+  }
+}
+
+class Meta extends Objeto {
+  constructor(x) { super(x, 0, COL.tinta); }
+  draw(ctx, cam) {
+    const x = this.x - cam;
+    if (x < -40 || x > anchoLogico + 40) return;
+    for (let r = 0; r < 12; r++) {
+      ctx.fillStyle = r % 2 ? COL.tinta : COL.noche;
+      ctx.fillRect(x, SUELO - 120 + r * 10, 10, 10);
+      ctx.fillStyle = r % 2 ? COL.noche : COL.tinta;
+      ctx.fillRect(x + 10, SUELO - 120 + r * 10, 10, 10);
+    }
+  }
+}
+
+// ---------- Construir el nivel ----------
+const PATRONES = [
+  [[300, 1]],
+  [[260, 1], [470, 1]],
+  [[330, 2]],
+  [[270, 1], [470, 2]],
+  [[300, 2], [520, 1]],
+];
+const portales = HITOS.map((h, i) => new Portal(INICIO + i * SEP, i));
+const picos = [];
+portales.forEach((p, i) => {
+  if (i === portales.length - 1) return;
+  PATRONES[i % PATRONES.length].forEach(([dx, n]) => picos.push(new Pico(p.x + dx, n)));
+});
+// algunos picos antes del primer portal
+picos.unshift(new Pico(380, 1));
+const meta = new Meta(portales[portales.length - 1].x + 340);
+const objetos = [...portales, ...picos, meta];   // lista polimórfica
+const jugador = new Jugador(80);
+
+// ---------- Estado ----------
+const entrada = { salto: false };
+let estado = "listo";      // listo | jugando | muerto | pausa | meta
+let checkpoint = -1;
+let intentos = 1;
+let tMuerte = 0;
+let anchoLogico = 600, escala = 1, dpr = 1;
+let fuenteDisplay = '"Bungee", "Arial Black", sans-serif';
+let fuenteTexto = '"Atkinson Hyperlegible", system-ui, sans-serif';
+
+const lienzo = $("lienzo");
+const ctx = lienzo.getContext("2d");
+const escenario = $("escenario");
+
+function ajustar() {
+  const r = escenario.getBoundingClientRect();
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  lienzo.width = Math.round(r.width * dpr);
+  lienzo.height = Math.round(r.height * dpr);
+  escala = r.height / ALTO;
+  anchoLogico = r.width / escala;
+  dibujar();
+}
+new ResizeObserver(ajustar).observe(escenario);
+
+function camara() { return jugador.x - Math.min(160, anchoLogico * 0.28); }
+
+// ---------- Tarjeta y marcador ----------
+function mostrarHito(i) {
+  const h = HITOS[i], t = TIPOS[h.p];
+  const tarjeta = $("tarjeta");
+  tarjeta.style.setProperty("--color-hito", `var(${t.c})`);
+  tarjeta.innerHTML = `
+    <span class="anio">${h.a}</span>
+    <div class="fila"><h3>${h.t}</h3>${chipHTML(h.p)}${t.u1 ? '<span class="u1">U1</span>' : ""}</div>
+    <p>${h.d}</p>`;
+}
+function actualizarMarcador() {
+  $("cuentaHitos").textContent = `${desbloqueados.size} / ${HITOS.length}`;
+  $("cuentaIntentos").textContent = intentos;
+  $("progreso").style.width = (desbloqueados.size / HITOS.length * 100) + "%";
+  $("btnJugar").textContent = estado === "jugando" ? "Pausa" : estado === "pausa" ? "Seguir" : "Jugar";
+}
+
+// ---------- Flujo del juego ----------
+function empezar() {
+  if (estado === "meta") reiniciarTodo(false);
+  estado = "jugando";
+  escenario.focus({ preventScroll: true });
+  actualizarMarcador();
+}
+function pausar() {
+  if (estado === "jugando") estado = "pausa";
+  else if (estado === "pausa") estado = "jugando";
+  actualizarMarcador();
+}
+function reaparecer() {
+  const x = checkpoint >= 0 ? portales[checkpoint].x + 20 : 80;
+  jugador.colocar(x);
+  jugador.color = COL.acento;
+  estado = "jugando";
+}
+function reiniciarTodo(borrar) {
+  checkpoint = -1; intentos = 1;
+  portales.forEach(p => p.cruzado = false);
+  if (borrar) { desbloqueados = new Set(); guardar("pd-desbloqueados", []); pintarLinea(); }
+  jugador.colocar(80); jugador.color = COL.acento;
+  estado = "listo";
+  actualizarMarcador(); dibujar();
+}
+
+function paso(dt) {
+  if (estado === "muerto") {
+    tMuerte -= dt * 16.67;
+    if (tMuerte <= 0) { intentos++; reaparecer(); actualizarMarcador(); }
+    return;
+  }
+  if (estado !== "jugando") return;
+
+  jugador.update(dt);
+  objetos.forEach(o => o.update(dt));   // polimorfismo
+
+  // portales
+  portales.forEach((p, i) => {
+    if (!p.cruzado && jugador.x + jugador.w / 2 >= p.x) {
+      p.cruzado = true;
+      checkpoint = i;
+      const nuevo = !desbloqueados.has(i);
+      desbloqueados.add(i);
+      mostrarHito(i);
+      if (nuevo) { guardar("pd-desbloqueados", [...desbloqueados]); pintarLinea(); }
+      actualizarMarcador();
+    }
+  });
+
+  // choques
+  for (const pico of picos) {
+    if (Math.abs(pico.x - jugador.x) < 90 && jugador.choca(pico)) {
+      estado = "muerto";
+      tMuerte = 650;
+      jugador.color = color("--p-ev");
+      break;
+    }
+  }
+
+  if (jugador.x >= meta.x) { estado = "meta"; actualizarMarcador(); }
+}
+
+// ---------- Dibujo ----------
+function texto(t, x, y, tam, c, fuente) {
+  ctx.font = `${tam}px ${fuente || fuenteTexto}`;
+  ctx.fillStyle = c; ctx.textAlign = "center";
+  ctx.fillText(t, x, y);
+}
+function dibujar() {
+  ctx.setTransform(dpr * escala, 0, 0, dpr * escala, 0, 0);
+  const cam = camara();
+  ctx.fillStyle = COL.noche;
+  ctx.fillRect(0, 0, anchoLogico, ALTO);
+
+  // rejilla con paralaje
+  ctx.strokeStyle = COL.linea; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+  const off = (cam * 0.4) % 48;
+  for (let x = -off; x < anchoLogico; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, SUELO); ctx.stroke(); }
+  for (let y = SUELO - 48; y > 0; y -= 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(anchoLogico, y); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+
+  // suelo
+  ctx.fillStyle = COL.panel;
+  ctx.fillRect(0, SUELO, anchoLogico, ALTO - SUELO);
+  ctx.fillStyle = COL.tinta;
+  ctx.fillRect(0, SUELO, anchoLogico, 2);
+  // marcas menores de la regla (cada 1/4 entre portales)
+  ctx.fillStyle = COL.linea;
+  const paso4 = SEP / 4;
+  for (let x = Math.floor(cam / paso4) * paso4; x < cam + anchoLogico; x += paso4) ctx.fillRect(x - cam, SUELO + 2, 1, 6);
+
+  objetos.forEach(o => o.draw(ctx, cam));   // polimorfismo
+  jugador.draw(ctx, cam);
+
+  // mensajes
+  const cx = anchoLogico / 2;
+  if (estado === "listo") {
+    ctx.fillStyle = COL.noche; ctx.globalAlpha = 0.72; ctx.fillRect(0, 0, anchoLogico, SUELO); ctx.globalAlpha = 1;
+    texto("PARADIGM DASH", cx, 104, 30, COL.tinta, fuenteDisplay);
+    texto(`${HITOS.length} hitos · de 1843 a 2026`, cx, 134, 15, COL.tenue);
+    texto("Toca o presiona ESPACIO para empezar", cx, 172, 16, COL.acento);
+  } else if (estado === "pausa") {
+    ctx.fillStyle = COL.noche; ctx.globalAlpha = 0.72; ctx.fillRect(0, 0, anchoLogico, SUELO); ctx.globalAlpha = 1;
+    texto("PAUSA", cx, 120, 30, COL.tinta, fuenteDisplay);
+    texto("Presiona P o el botón Seguir", cx, 150, 15, COL.tenue);
+  } else if (estado === "muerto") {
+    texto("¡CHOCASTE!", cx, 96, 28, color("--p-ev"), fuenteDisplay);
+    texto(checkpoint >= 0 ? `Vuelves al portal de ${HITOS[checkpoint].a}` : "Vuelves al inicio", cx, 124, 15, COL.tenue);
+  } else if (estado === "meta") {
+    ctx.fillStyle = COL.noche; ctx.globalAlpha = 0.72; ctx.fillRect(0, 0, anchoLogico, SUELO); ctx.globalAlpha = 1;
+    texto("¡LÍNEA COMPLETA!", cx, 100, 28, COL.tinta, fuenteDisplay);
+    texto(`Recorriste ${HITOS.length} hitos en ${intentos} ${intentos === 1 ? "intento" : "intentos"}`, cx, 130, 15, COL.tenue);
+    texto("Toca o presiona ESPACIO para jugar otra vez", cx, 166, 15, COL.acento);
+  }
+}
+
+let ultimo = 0;
+function ciclo(t) {
+  const dt = ultimo ? Math.min((t - ultimo) / 16.67, 2) : 1;
+  ultimo = t;
+  paso(dt);
+  dibujar();
+  requestAnimationFrame(ciclo);
+}
+
+// ---------- Entrada (eventos) ----------
+function presionar() {
+  if (estado === "listo" || estado === "meta") { empezar(); return; }
+  if (estado === "pausa") { pausar(); return; }
+  entrada.salto = true;
+}
+function soltar() { entrada.salto = false; }
+
+window.addEventListener("keydown", (e) => {
+  const enCampo = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "");
+  if (enCampo) return;
+  if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
+    const enJuego = document.activeElement === escenario || estado === "jugando";
+    if (!enJuego) return;
+    e.preventDefault();
+    if (!e.repeat) presionar(); else entrada.salto = true;
+  } else if (e.code === "KeyP") {
+    if (estado === "jugando" || estado === "pausa") pausar();
+  }
+});
+window.addEventListener("keyup", (e) => {
+  if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") soltar();
+});
+escenario.addEventListener("pointerdown", (e) => { e.preventDefault(); escenario.focus({ preventScroll: true }); presionar(); });
+window.addEventListener("pointerup", soltar);
+window.addEventListener("pointercancel", soltar);
+escenario.addEventListener("contextmenu", (e) => e.preventDefault());
+
+$("btnJugar").addEventListener("click", () => {
+  if (estado === "jugando" || estado === "pausa") pausar(); else empezar();
+});
+$("btnReiniciar").addEventListener("click", () => reiniciarTodo(true));
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && estado === "jugando") { estado = "pausa"; actualizarMarcador(); }
+});
+
+document.fonts?.ready.then(() => dibujar());
+actualizarMarcador();
+ajustar();
+requestAnimationFrame(ciclo);
+</script>
+
+</body>
+</html>
