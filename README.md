@@ -35,7 +35,7 @@ El cubo azul corre sobre el suelo y los obstáculos avanzan hacia él. Cada obst
 
 ## Cómo ejecutarlo
 
-Requisitos: [.NET SDK 8](https://dotnet.microsoft.com/download) o superior. La librería **Raylib-cs** se descarga sola desde NuGet.
+Requisitos: [.NET SDK 10](https://dotnet.microsoft.com/download). La librería **Raylib-cs** se descarga sola desde NuGet.
 
 ```bash
 # Versión orientada a objetos
